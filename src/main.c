@@ -20,12 +20,18 @@ bool initialize_window(void) {
         return false;
     }
 
+    SDL_DisplayMode display_mode;
+    SDL_GetCurrentDisplayMode(0, &display_mode);
+
+    window_width = display_mode.w;
+    window_height = display_mode.h;
+
     window = SDL_CreateWindow(
         NULL,
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        800,
-        600,
+        window_width,
+        window_height,
         SDL_WINDOW_BORDERLESS
     );
 
@@ -41,11 +47,12 @@ bool initialize_window(void) {
         return false;
     }
 
+    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+
     return true;
 }
 
 bool setup(void) {
-    SDL_GetWindowSize(window, &window_width, &window_height);
     color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
     if (!color_buffer) {
         puts("No memory.\n");
@@ -96,12 +103,23 @@ void clear_color_buffer(uint32_t color) {
     }
 }
 
+void draw_grid(void) {
+    for (int x = 0; x < window_width; x++) {
+        for (int y = 0; y < window_height; y++) {
+            if (y % 10 == 0 || x % 10 == 0) {
+                color_buffer[(window_width * y) + x] = 0xFF0000FF;
+            }
+        }
+    }
+}
+
 void render(void) {
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     SDL_RenderClear(renderer);
 
     render_color_buffer();
     clear_color_buffer(0xFFFFFF00);
+    draw_grid();
 
     SDL_RenderPresent(renderer);
 }
