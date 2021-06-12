@@ -61,18 +61,10 @@ void load_obj_file_data(char* filename) {
         exit(EXIT_FAILURE);
     }
     char line[1000];
-    char* line_chunks;
-    size_t len = 0;
-    vec3_t vector;
-    face_t face;
-    float val;
-
-    float face_v;
-    float face_vt;
-    float face_vn;
     
     while (fgets(line, 60, file)) {
         if (line[0] == 'v') {
+            vec3_t vector;
             sscanf(line, "v %f %f %f\n", &vector.x, &vector.y, &vector.z);
             printf("%.2f\n", vector.x);
             printf("%.2f\n", vector.y);
@@ -81,23 +73,25 @@ void load_obj_file_data(char* filename) {
         }
 
         else if (line[0] == 'f') {
-            line_chunks = strtok(line, " ");
+            char* line_chunk;
+            line_chunk = strtok(line, " ");
 
-            printf("%s\n", line_chunks);
-            line_chunks = strtok(NULL, " ");
-            printf("%s\n", line_chunks);       
-            sscanf(line_chunks, "%f/%f/%f", &face_v, &face_vt, &face_vn);
-            face.a = face_v;
+            face_t face;
+            int face_vt;
+            int face_vn;
 
-            line_chunks = strtok(NULL, " ");
-            printf("%s\n", line_chunks);
-            sscanf(line_chunks, "%f/%f/%f", &face_v, &face_vt, &face_vn);
-            face.b = face_v;
+            printf("%s\n", line_chunk);
+            line_chunk = strtok(NULL, " ");
+            printf("%s\n", line_chunk);       
+            sscanf(line_chunk, "%d/%d/%d", &face.a, &face_vt, &face_vn);
 
-            line_chunks = strtok(NULL, " ");
-            printf("%s\n", line_chunks);
-            sscanf(line_chunks, "%f/%f/%f", &face_v, &face_vt, &face_vn);
-            face.c = face_v;
+            line_chunk = strtok(NULL, " ");
+            printf("%s\n", line_chunk);
+            sscanf(line_chunk, "%d/%d/%d", &face.b, &face_vt, &face_vn);
+
+            line_chunk = strtok(NULL, " ");
+            printf("%s\n", line_chunk);
+            sscanf(line_chunk, "%d/%d/%d", &face.c, &face_vt, &face_vn);
 
             array_push(mesh.faces, face);
         }
