@@ -31,8 +31,8 @@ bool setup(void) {
         window_height
     );
 
-    //load_cube_mesh();
-    load_obj_file_data("./assets/f22.obj");
+    load_cube_mesh();
+    //load_obj_file_data("./assets/f22.obj");
     return true;
 }
 
@@ -123,16 +123,41 @@ void update(void) {
             continue;
         }
 
-        triangle_t projected_triangle;
+        vec2_t projected_points[3];
+
         for (int j = 0; j < 3; j++) {
-            vec2_t projected_point = project(transformed_vertices[j]);
+            projected_points[j] = project(transformed_vertices[j]);
 
             // scale and translate point to middle of screen
-            projected_point.x += (window_width / 2);
-            projected_point.y += (window_height / 2);
-            projected_triangle.points[j] = projected_point;
+            projected_points[j].x += (window_width / 2);
+            projected_points[j].y += (window_height / 2);
         }
+
+        // Calculate average depth after tranformed vertices
+
+        float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;
+
+        triangle_t projected_triangle = {
+            .points = {
+                {projected_points[0].x, projected_points[0].y},
+                {projected_points[1].x, projected_points[1].y},
+                {projected_points[2].x, projected_points[2].y},
+            },
+            .color = mesh_face.color,
+            .avg_depth = avg_depth
+        };
         array_push(triangles_to_render, projected_triangle);
+    }
+
+    // Bubble sort for z-axis
+    for (int k = 0; k < num_triangles - 1; k++) {
+        for (int i = 0; i < num_triangles - 1; i++) {
+            if(triangles_to_render[i].avg_depth < triangles_to_render[i + 1].avg_depth) {
+                triangle_t temp = triangles_to_render[i];
+                triangles_to_render[i] = triangles_to_render[i + 1];
+                triangles_to_render[i + 1] = temp;
+            }
+        }
     }
 }
 
@@ -151,7 +176,7 @@ void render(void) {
                 triangle.points[1].y,
                 triangle.points[2].x,
                 triangle.points[2].y,
-                0xFFFFFF00
+                triangle.color
             );
         }
 
