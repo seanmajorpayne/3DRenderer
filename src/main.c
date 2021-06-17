@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <SDL2/SDL.h>
+#include <assert.h>
 #include "display.h"
 #include "vector.h"
 #include "mesh.h"
@@ -63,6 +64,56 @@ void process_input(void) {
                     break;
             }
             break;
+    }
+}
+
+void merge(int low, int mid, int high)
+{
+    int merge_size = high - low + 1;
+    triangle_t *temp = malloc(merge_size * sizeof(triangle_t));
+    int merge_pos = 0;
+    int left_pos = low;
+    int right_pos = mid + 1;
+
+    while (left_pos <= mid && right_pos <= high)
+    {
+
+        if (triangles_to_render[left_pos].avg_depth > triangles_to_render[right_pos].avg_depth)
+        {
+            temp[merge_pos++] = triangles_to_render[left_pos++];
+        }
+        else
+        {
+            temp[merge_pos++] = triangles_to_render[right_pos++];
+        }
+    }
+
+    while (left_pos <= mid)
+    {
+        temp[merge_pos++] = triangles_to_render[left_pos++];
+    }
+
+    while (right_pos <= high)
+    {
+        temp[merge_pos++] = triangles_to_render[right_pos++];
+    }
+
+    for (merge_pos = 0; merge_pos < merge_size; ++merge_pos)
+        triangles_to_render[low + merge_pos] = temp[merge_pos];
+
+    free(temp);
+}
+
+void merge_sort(int low, int high)
+{
+    if (low < high)
+    {
+        int mid = (low + high) / 2;
+
+        merge_sort(low, mid);
+        merge_sort(mid + 1, high);
+
+        merge(low, mid, high);
     }
 }
 
@@ -149,16 +200,8 @@ void update(void) {
         array_push(triangles_to_render, projected_triangle);
     }
 
-    // Bubble sort for z-axis
-    for (int k = 0; k < num_triangles - 1; k++) {
-        for (int i = 0; i < num_triangles - 1; i++) {
-            if(triangles_to_render[i].avg_depth < triangles_to_render[i + 1].avg_depth) {
-                triangle_t temp = triangles_to_render[i];
-                triangles_to_render[i] = triangles_to_render[i + 1];
-                triangles_to_render[i + 1] = temp;
-            }
-        }
-    }
+    int num_triangles = array_length(triangles_to_render) - 1;
+    merge_sort(0, num_triangles);
 }
 
 void render(void) {
