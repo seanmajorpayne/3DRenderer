@@ -94,6 +94,18 @@ void vec3_normalize(vec3_t* v) {
     vec3_divide(v, magnitude);
 }
 
+vec4_t vec4_from_vec3(vec3_t v) 
+{
+    vec4_t vecfour = {v.x, v.y, v.z, 1.0};
+    return vecfour;
+}
+
+vec3_t vec3_from_vec4(vec4_t v) 
+{
+    vec3_t vecthree = {v.x, v.y, v.z};
+    return vecthree;
+}
+
 vec3_t vec3_rotate_x(vec3_t v, float angle) {
     vec3_t rotated_vector = {
         .x = v.x,
