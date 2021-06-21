@@ -9,6 +9,7 @@
 #include "mesh.h"
 #include "array.h"
 #include "matrix.h"
+#include "light.h"
 #ifndef M_PI
 #define M_PI (3.141592)
 #endif
@@ -21,6 +22,7 @@ bool display_vertices = false;
 
 triangle_t* triangles_to_render = NULL;
 vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
+light_t sun = {.direction = {.x = 0.0, .y = 0.0, .z = 1.0}};
 mat4_t projection_matrix;
 int previous_frame_time = 0;
 
@@ -44,8 +46,8 @@ bool setup(void) {
     float zfar = 100.0;
     projection_matrix = mat4_make_projection(fov, aspect, zfar, znear);
 
-    load_cube_mesh();
-    //load_obj_file_data("./assets/f22.obj");
+    //load_cube_mesh();
+    load_obj_file_data("./assets/teapot.obj");
     return true;
 }
 
@@ -141,14 +143,17 @@ void update(void) {
     // Initialize the array of triangles to render
     triangles_to_render = NULL;
 
-    mesh.rotation.x += 0.001;
-    //mesh.rotation.y += 0.001;
-    //mesh.rotation.z += 0.001;
+    //mesh.rotation.x += 0.005;
+    //mesh.rotation.y += 0.005;
+    //mesh.rotation.z = 0.02;
 
     // Move object away from camera
+    mesh.translation.y = -0.3;
     mesh.translation.z = 5.0;
 
-    //mesh.scale.x += 0.002;
+    mesh.scale.x = 0.6;
+    mesh.scale.y = 0.6;
+    mesh.scale.z = 0.6;
 
     //mesh.translation.x += 0.005;
 
@@ -180,17 +185,23 @@ void update(void) {
             transformed_vertices[j] = transformed_vertex;
         }
         
+        // Calculate the normal vector for the face
+        vec3_t vector_a = vec3_from_vec4(transformed_vertices[0]);
+        vec3_t vector_b = vec3_from_vec4(transformed_vertices[1]);
+        vec3_t vector_c = vec3_from_vec4(transformed_vertices[2]);
+        vec3_t vector_ab = vec3_subtract(vector_b, vector_a);
+        vec3_t vector_ac = vec3_subtract(vector_c, vector_a);
+        vec3_normalize(&vector_ab);
+        vec3_normalize(&vector_ac);
+        vec3_t normal_vector = vec3_cross_product(vector_ab, vector_ac);
+        vec3_normalize(&normal_vector);
+        
+        /* If the user has backface culling enabled, calculate the angle of the camera
+        * and the face's normal vector. If this is non-negative, the face should be
+        * rendered.
+        */
         float visible = 1.f;
         if (enable_culling) {
-            vec3_t vector_a = vec3_from_vec4(transformed_vertices[0]);
-            vec3_t vector_b = vec3_from_vec4(transformed_vertices[1]);
-            vec3_t vector_c = vec3_from_vec4(transformed_vertices[2]);
-            vec3_t vector_ab = vec3_subtract(vector_b, vector_a);
-            vec3_t vector_ac = vec3_subtract(vector_c, vector_a);
-            vec3_normalize(&vector_ab);
-            vec3_normalize(&vector_ac);
-            vec3_t normal_vector = vec3_cross_product(vector_ab, vector_ac);
-            vec3_normalize(&normal_vector);
             vec3_t camera_vector = vec3_subtract(camera_position, vector_a);
             visible = vec3_dot_product(normal_vector, camera_vector);
         }
@@ -209,6 +220,10 @@ void update(void) {
             projected_points[j].x *= (window_width / 2.0);
             projected_points[j].y *= (window_height / 2.0);
 
+            // Invert Y Values to account for flipped screen y coordinate
+
+            projected_points[j].y *= -1.0;
+
             // Translate point to middle of screen
             projected_points[j].x += (window_width / 2.0);
             projected_points[j].y += (window_height / 2.0);
@@ -218,13 +233,22 @@ void update(void) {
 
         float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;
 
+
+        /* Calculate the alignment of the sun with the face
+        *  and use the alignment to determine the amount of shading
+        *  to apply to the face.
+        */
+        vec3_normalize(&sun.direction);
+        float face_light_alignment = -vec3_dot_product(normal_vector, sun.direction);
+        uint32_t triangle_color = light_apply_intensity(mesh_face.color, face_light_alignment);
+
         triangle_t projected_triangle = {
             .points = {
                 {projected_points[0].x, projected_points[0].y},
                 {projected_points[1].x, projected_points[1].y},
                 {projected_points[2].x, projected_points[2].y},
             },
-            .color = mesh_face.color,
+            .color = triangle_color,
             .avg_depth = avg_depth
         };
         array_push(triangles_to_render, projected_triangle);

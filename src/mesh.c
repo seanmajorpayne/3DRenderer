@@ -82,18 +82,16 @@ void load_obj_file_data(char* filename) {
             int face_vt;
             int face_vn;
 
-            printf("%s\n", line_chunk);
-            line_chunk = strtok(NULL, " ");
-            printf("%s\n", line_chunk);       
+            line_chunk = strtok(NULL, " ");      
             sscanf(line_chunk, "%d/%d/%d", &face.a, &face_vt, &face_vn);
 
             line_chunk = strtok(NULL, " ");
-            printf("%s\n", line_chunk);
             sscanf(line_chunk, "%d/%d/%d", &face.b, &face_vt, &face_vn);
 
             line_chunk = strtok(NULL, " ");
-            printf("%s\n", line_chunk);
             sscanf(line_chunk, "%d/%d/%d", &face.c, &face_vt, &face_vn);
+
+            face.color = 0xFFFFFFFF;
 
             array_push(mesh.faces, face);
         }

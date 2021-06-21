@@ -125,6 +125,7 @@ mat4_t mat4_make_projection(float fov, float aspect, float zfar, float znear) {
 * The resulting 4x1 vector contains the positon of the
 * object in 3D space relative to the field of view, aspect ratio,
 * and distance from monitor to the end of the rendering plane.
+* The final vector contains the normalized device coordinates.
 */
 vec4_t mat4_mult_vec4_project(mat4_t m, vec4_t v) {
     vec4_t result = mat4_vec4_multiply(m, v);
