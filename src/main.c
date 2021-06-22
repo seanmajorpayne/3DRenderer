@@ -10,6 +10,7 @@
 #include "array.h"
 #include "matrix.h"
 #include "light.h"
+#include "texture.h"
 #ifndef M_PI
 #define M_PI (3.141592)
 #endif
@@ -19,6 +20,7 @@ bool display_wireframe = true;
 bool fill_triangles = false;
 bool enable_culling = true;
 bool display_vertices = false;
+bool render_textures = false;
 
 triangle_t* triangles_to_render = NULL;
 vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
@@ -46,8 +48,13 @@ bool setup(void) {
     float zfar = 100.0;
     projection_matrix = mat4_make_projection(fov, aspect, zfar, znear);
 
-    //load_cube_mesh();
-    load_obj_file_data("./assets/teapot.obj");
+    // Load hardcoded texture data
+    mesh_texture = (uint32_t*) REDBRICK_TEXTURE;
+    texture_width = 64;
+    texture_height = 64;
+
+    load_cube_mesh();
+    //load_obj_file_data("./assets/teapot.obj");
     return true;
 }
 
@@ -75,6 +82,9 @@ void process_input(void) {
                     break;
                 case SDLK_3:
                     display_vertices = !display_vertices;
+                    break;
+                case SDLK_4:
+                    render_textures = !render_textures;
                     break;
             }
             break;
@@ -143,7 +153,7 @@ void update(void) {
     // Initialize the array of triangles to render
     triangles_to_render = NULL;
 
-    //mesh.rotation.x += 0.005;
+    mesh.rotation.x += 0.005;
     //mesh.rotation.y += 0.005;
     //mesh.rotation.z = 0.02;
 
@@ -200,29 +210,26 @@ void update(void) {
         * and the face's normal vector. If this is non-negative, the face should be
         * rendered.
         */
-        float visible = 1.f;
         if (enable_culling) {
             vec3_t camera_vector = vec3_subtract(camera_position, vector_a);
-            visible = vec3_dot_product(normal_vector, camera_vector);
+            float visible = vec3_dot_product(normal_vector, camera_vector);
+            if (visible < 0) {
+                continue;
         }
-        
-
-        if (visible < 0) {
-            continue;
         }
 
         vec4_t projected_points[3];
 
         for (int j = 0; j < 3; j++) {
             projected_points[j] = mat4_mult_vec4_project(projection_matrix, transformed_vertices[j]);
-        
-            // Scale point to middle of screen
-            projected_points[j].x *= (window_width / 2.0);
-            projected_points[j].y *= (window_height / 2.0);
 
             // Invert Y Values to account for flipped screen y coordinate
 
             projected_points[j].y *= -1.0;
+
+            // Scale point to middle of screen
+            projected_points[j].x *= (window_width / 2.0);
+            projected_points[j].y *= (window_height / 2.0);
 
             // Translate point to middle of screen
             projected_points[j].x += (window_width / 2.0);
@@ -247,6 +254,11 @@ void update(void) {
                 {projected_points[0].x, projected_points[0].y},
                 {projected_points[1].x, projected_points[1].y},
                 {projected_points[2].x, projected_points[2].y},
+            },
+            .tex_coords = {
+                {mesh_face.a_uv.u, mesh_face.a_uv.v},
+                {mesh_face.b_uv.u, mesh_face.b_uv.v},
+                {mesh_face.c_uv.u, mesh_face.c_uv.v}
             },
             .color = triangle_color,
             .avg_depth = avg_depth
@@ -274,6 +286,24 @@ void render(void) {
                 triangle.points[2].x,
                 triangle.points[2].y,
                 triangle.color
+            );
+        }
+
+        if (render_textures) {
+            draw_textured_triangle(
+                triangle.points[0].x,
+                triangle.points[0].y,
+                triangle.tex_coords[0].u,
+                triangle.tex_coords[0].v,
+                triangle.points[1].x,
+                triangle.points[1].y,
+                triangle.tex_coords[1].u,
+                triangle.tex_coords[1].v,
+                triangle.points[2].x,
+                triangle.points[2].y,
+                triangle.tex_coords[2].u,
+                triangle.tex_coords[2].v,
+                mesh_texture
             );
         }
 
