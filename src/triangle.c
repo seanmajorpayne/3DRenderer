@@ -176,9 +176,10 @@ void draw_textured_triangle(
     vec4_t point_b = {x1, y1, z1, w1};
     vec4_t point_c = {x2, y2, z2, w2};
 
-    tex2_t a_uv = {u0, v0};
-    tex2_t b_uv = {u1, v1};
-    tex2_t c_uv = {u2, v2};
+    // Invert V to accomodate for obj file format
+    tex2_t a_uv = {u0, 1.0 - v0};
+    tex2_t b_uv = {u1, 1.0 - v1};
+    tex2_t c_uv = {u2, 1.0 - v2};
 
     // Flat Bottom Triangle
 

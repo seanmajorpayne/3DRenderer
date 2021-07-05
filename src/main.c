@@ -11,6 +11,7 @@
 #include "matrix.h"
 #include "light.h"
 #include "texture.h"
+#include "upng.h"
 #ifndef M_PI
 #define M_PI (3.141592)
 #endif
@@ -36,7 +37,7 @@ bool setup(void) {
     }
     color_buffer_texture = SDL_CreateTexture(
         renderer,
-        SDL_PIXELFORMAT_ARGB8888,
+        SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_STREAMING,
         window_width,
         window_height
@@ -49,12 +50,14 @@ bool setup(void) {
     projection_matrix = mat4_make_projection(fov, aspect, zfar, znear);
 
     // Load hardcoded texture data
-    mesh_texture = (uint32_t*) REDBRICK_TEXTURE;
-    texture_width = 64;
-    texture_height = 64;
+    //mesh_texture = (uint32_t*) REDBRICK_TEXTURE;
+    //texture_width = 64;
+    //texture_height = 64;
 
-    load_cube_mesh();
-    //load_obj_file_data("./assets/teapot.obj");
+    //load_cube_mesh();
+    load_obj_file_data("./assets/cube.obj");
+
+    load_png_texture_data("./assets/cube.png");
     return true;
 }
 
@@ -181,9 +184,9 @@ void update(void) {
     for (int i = 0; i < num_faces; i++) {
         face_t mesh_face = mesh.faces[i];
         vec3_t face_vertices[3];
-        face_vertices[0] = mesh.vertices[mesh_face.a - 1];
-        face_vertices[1] = mesh.vertices[mesh_face.b - 1];
-        face_vertices[2] = mesh.vertices[mesh_face.c - 1];
+        face_vertices[0] = mesh.vertices[mesh_face.a];
+        face_vertices[1] = mesh.vertices[mesh_face.b];
+        face_vertices[2] = mesh.vertices[mesh_face.c];
 
         vec4_t transformed_vertices[3];
 
@@ -343,6 +346,7 @@ void free_resources(void) {
     free(color_buffer);
     array_free(mesh.faces);
     array_free(mesh.vertices);
+    //upng_free(png_texture);
 }
 
 int main(void) {

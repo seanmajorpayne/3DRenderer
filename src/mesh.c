@@ -63,39 +63,46 @@ void load_obj_file_data(char* filename) {
         exit(EXIT_FAILURE);
     }
     char line[1000];
+
+    tex2_t* texcoords = NULL;
     
     while (fgets(line, 1024, file)) {
-        if (line[0] == 'v') {
+        if (strncmp(line, "v ", 2) == 0) {
             vec3_t vector;
             sscanf(line, "v %f %f %f\n", &vector.x, &vector.y, &vector.z);
-            printf("%.2f\n", vector.x);
-            printf("%.2f\n", vector.y);
-            printf("%.2f\n", vector.z);
             array_push(mesh.vertices, vector);
         }
 
-        else if (line[0] == 'f') {
-            char* line_chunk;
-            line_chunk = strtok(line, " ");
+        if (strncmp(line, "vt ", 3) == 0) {
+            tex2_t texcoord;
+            sscanf(line, "vt %f %f", &texcoord.u, &texcoord.v);
+            array_push(texcoords, texcoord);
+        }
 
+        if (strncmp(line, "f ", 2) == 0) {
             face_t face;
-            int face_vt;
-            int face_vn;
+            int vertex_indices[3];
+            int texture_indices[3];
+            int normal_indices[3];
 
-            line_chunk = strtok(NULL, " ");      
-            sscanf(line_chunk, "%d/%d/%d", &face.a, &face_vt, &face_vn);
-
-            line_chunk = strtok(NULL, " ");
-            sscanf(line_chunk, "%d/%d/%d", &face.b, &face_vt, &face_vn);
-
-            line_chunk = strtok(NULL, " ");
-            sscanf(line_chunk, "%d/%d/%d", &face.c, &face_vt, &face_vn);
+            sscanf(
+                line, "f %d/%d/%d %d/%d/%d %d/%d/%d", 
+                &vertex_indices[0], &texture_indices[0], &normal_indices[0],
+                &vertex_indices[1], &texture_indices[1], &normal_indices[1],
+                &vertex_indices[2], &texture_indices[2], &normal_indices[2]
+            );
 
             face.color = 0xFFFFFFFF;
-
+            face.a = vertex_indices[0] - 1;
+            face.b = vertex_indices[1] - 1;
+            face.c = vertex_indices[2] - 1;
+            face.a_uv = texcoords[texture_indices[0] - 1];
+            face.b_uv = texcoords[texture_indices[1] - 1];
+            face.c_uv = texcoords[texture_indices[2] - 1];
             array_push(mesh.faces, face);
         }
     }
+    array_free(texcoords);
 }
 
 // TODO: Create functions for mesh
