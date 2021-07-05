@@ -218,7 +218,7 @@ void update(void) {
             float visible = vec3_dot_product(normal_vector, camera_vector);
             if (visible < 0) {
                 continue;
-        }
+            }
         }
 
         vec4_t projected_points[3];
