@@ -23,71 +23,102 @@ void swap_float(float* a, float* b) {
 * methods of drawing triangles. Sorted by Y position
 */
 
-void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
+void draw_filled_triangle(
+    int x0, int y0, float z0, float w0,
+    int x1, int y1, float z1, float w1,
+    int x2, int y2, float z2, float w2, uint32_t color) {
     if (y0 > y1) {
         swap(&y0, &y1);
         swap(&x0, &x1);
+        swap_float(&z0, &z1);
+        swap_float(&w0, &w1);
     }
     if (y1 > y2) {
         swap(&y1, &y2);
         swap(&x1, &x2);
+        swap_float(&z1, &z2);
+        swap_float(&w1, &w2);
     }
     if (y0 > y1) {
         swap(&y0, &y1);
         swap(&x0, &x1);
+        swap_float(&z0, &z1);
+        swap_float(&w0, &w1);
     }
 
-    if (y1 == y2) {
-        fill_flat_bottom_triangle(x0, y0, x1, y1, x2, y2, color);
+    vec2_t a = {x0, y0};
+    vec2_t b = {x1, y1};
+    vec2_t c = {x2, y2};
+
+    // Flat Bottom Triangle
+
+    float slope_one = 0;
+    float slope_two = 0;
+
+    if (y1 - y0 != 0) slope_one = (float) (x1 - x0) / abs(y1 - y0);
+    if (y2 - y0 != 0) slope_two = (float) (x2 - x0) / abs(y2 - y0);
+
+    if (y1 - y0 != 0) {
+        for (int y = y0; y <= y1; y++) {
+            int x_start = x1 + (y - y1) * slope_one;
+            int x_end = x0 + (y - y0) * slope_two;
+
+            if (x_start > x_end) {
+                swap(&x_start, &x_end);
+            }
+            
+            for (int x = x_start; x < x_end; x++) {
+                vec2_t p = {x, y};
+                vec3_t weights = barycentric_weights(a, b, c, p);
+                float alpha = weights.x;
+                float beta = weights.y;
+                float gamma = weights.z;
+                float interpolated_reciprocal_w = (1 / w0) * alpha + (1 / w1) * beta + (1 / w2) * gamma;
+                interpolated_reciprocal_w = 1 - interpolated_reciprocal_w;
+                if (interpolated_reciprocal_w < z_buffer[(window_width * y) + x]){
+                    draw_pixel(x, y, color);
+
+                    z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;
+                }
+            }
+        }
     }
 
-    else if (y0 == y1) {
-        fill_flat_top_triangle(x0, y0, x1, y1, x2, y2, color);
-    }
+    // Flat Top Triangle
 
-    else {
-        int mx = (((x2 - x0) * (y1 - y0)) / (y2 - y0)) + x0;
-        int my = y1;
+    slope_one = 0;
+    slope_two = 0;
 
-        // Draw flat-bottom
-        fill_flat_bottom_triangle(x0, y0, x1, y1, mx, my, color);
+    if (y2 - y1 != 0) slope_one = (float) (x2 - x1) / abs(y2 - y1);
+    if (y2 - y0 != 0) slope_two = (float) (x2 - x0) / abs(y2 - y0);
 
-        // Draw flat-top
-        fill_flat_top_triangle(x1, y1, mx, my, x2, y2, color);
-    }
-}
+    if (y2 - y1 != 0) {
 
-/*
-* Find the inverse slope of both sides of the triangle.
-* Use the slopes to calculate an x_start and x_end and fill in
-* the pixels between them.
-*/
-void fill_flat_bottom_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
-    float slope_one = (float) (x1 - x0) / (y1 - y0);
-    float slope_two = (float) (x2 - x0) / (y2 - y0);
+        for (int y = y1; y <= y2; y++) {
+            int x_start = x1 + (y - y1) * slope_one;
+            int x_end = x0 + (y - y0) * slope_two;
 
-    float x_start = x0;
-    float x_end = x0;
-    for (int y = y0; y <= y2; y++) {
-        draw_line(x_start, y, x_end, y, color);
-        x_start += slope_one;
-        x_end += slope_two;
-    }
+            if (x_start > x_end) {
+                swap(&x_start, &x_end);
+            }
+            
+            for (int x = x_start; x < x_end; x++) {
+                vec2_t p = {x, y};
+                vec3_t weights = barycentric_weights(a, b, c, p);
+                float alpha = weights.x;
+                float beta = weights.y;
+                float gamma = weights.z;
+                float interpolated_reciprocal_w = (1 / w0) * alpha + (1 / w1) * beta + (1 / w2) * gamma;
+                interpolated_reciprocal_w = 1 - interpolated_reciprocal_w;
+                if (interpolated_reciprocal_w < z_buffer[(window_width * y) + x]){
+                    draw_pixel(x, y, color);
 
-}
+                    z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;
+                }
+            }
+        }   
 
-void fill_flat_top_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
-    float slope_one = (float) (x2 - x0) / (y2 - y0);
-    float slope_two = (float) (x2 - x1) / (y2 - y1);
-
-    float x_start = x2;
-    float x_end = x2;
-
-    for (int y = y2; y >= y0; y--) {
-        draw_line(x_start, y, x_end, y, color);
-        x_start -= slope_one;
-        x_end -= slope_two;
-    }      
+    }  
 }
 
 vec3_t barycentric_weights(vec2_t a, vec2_t b, vec2_t c, vec2_t p) {
@@ -135,9 +166,19 @@ void draw_texel(
     interpolated_u /= interpolated_reciprocal_w;
     interpolated_v /= interpolated_reciprocal_w;
 
-    int tex_x = abs((int)(interpolated_u * texture_width));
-    int tex_y = abs((int)(interpolated_v * texture_height));
-    draw_pixel(x, y, texture[texture_width * tex_y + tex_x]);
+    int tex_x = abs((int)(interpolated_u * texture_width)) % texture_width;
+    int tex_y = abs((int)(interpolated_v * texture_height)) % texture_height;
+
+    // Must invert so smaller values are closer to the viewer
+    interpolated_reciprocal_w = 1 - interpolated_reciprocal_w;
+
+    // Only render pixels that are in the front of the z-plane
+    if (interpolated_reciprocal_w < z_buffer[(window_width * y) + x]) {
+        draw_pixel(x, y, texture[texture_width * tex_y + tex_x]);
+        
+        // Update z-buffer with 1/w of current pixel
+        z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;
+    }
 }
 
 void draw_textured_triangle(

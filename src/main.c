@@ -16,6 +16,8 @@
 #define M_PI (3.141592)
 #endif
 
+#define MAX_TRIANGLES_PER_MESH (10000)
+
 bool is_running = false;
 bool display_wireframe = true;
 bool fill_triangles = false;
@@ -23,7 +25,8 @@ bool enable_culling = true;
 bool display_vertices = false;
 bool render_textures = false;
 
-triangle_t* triangles_to_render = NULL;
+triangle_t triangles_to_render[MAX_TRIANGLES_PER_MESH];
+int num_triangles_to_render = 0;
 vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
 light_t sun = {.direction = {.x = 0.0, .y = 0.0, .z = 1.0}};
 mat4_t projection_matrix;
@@ -32,6 +35,11 @@ int previous_frame_time = 0;
 bool setup(void) {
     color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
     if (!color_buffer) {
+        puts("No memory.\n");
+        return false;
+    }
+    z_buffer = (float*) malloc(sizeof(float) * window_width * window_height);
+    if (!z_buffer) {
         puts("No memory.\n");
         return false;
     }
@@ -49,15 +57,9 @@ bool setup(void) {
     float zfar = 100.0;
     projection_matrix = mat4_make_projection(fov, aspect, zfar, znear);
 
-    // Load hardcoded texture data
-    //mesh_texture = (uint32_t*) REDBRICK_TEXTURE;
-    //texture_width = 64;
-    //texture_height = 64;
+    load_obj_file_data("./assets/f22.obj");
 
-    //load_cube_mesh();
-    load_obj_file_data("./assets/cube.obj");
-
-    load_png_texture_data("./assets/cube.png");
+    load_png_texture_data("./assets/f22.png");
     return true;
 }
 
@@ -94,56 +96,6 @@ void process_input(void) {
     }
 }
 
-void merge(int low, int mid, int high)
-{
-    int merge_size = high - low + 1;
-    triangle_t *temp = malloc(merge_size * sizeof(triangle_t));
-    int merge_pos = 0;
-    int left_pos = low;
-    int right_pos = mid + 1;
-
-    while (left_pos <= mid && right_pos <= high)
-    {
-
-        if (triangles_to_render[left_pos].avg_depth > triangles_to_render[right_pos].avg_depth)
-        {
-            temp[merge_pos++] = triangles_to_render[left_pos++];
-        }
-        else
-        {
-            temp[merge_pos++] = triangles_to_render[right_pos++];
-        }
-    }
-
-    while (left_pos <= mid)
-    {
-        temp[merge_pos++] = triangles_to_render[left_pos++];
-    }
-
-    while (right_pos <= high)
-    {
-        temp[merge_pos++] = triangles_to_render[right_pos++];
-    }
-
-    for (merge_pos = 0; merge_pos < merge_size; ++merge_pos)
-        triangles_to_render[low + merge_pos] = temp[merge_pos];
-
-    free(temp);
-}
-
-void merge_sort(int low, int high)
-{
-    if (low < high)
-    {
-        int mid = (low + high) / 2;
-
-        merge_sort(low, mid);
-        merge_sort(mid + 1, high);
-
-        merge(low, mid, high);
-    }
-}
-
 void update(void) {
     int time_to_wait = FRAME_TARGET_TIME - (SDL_GetTicks() - previous_frame_time);
 
@@ -153,8 +105,8 @@ void update(void) {
 
     previous_frame_time = SDL_GetTicks();
 
-    // Initialize the array of triangles to render
-    triangles_to_render = NULL;
+    // Reset triangles to render per frame
+    num_triangles_to_render = 0;
 
     mesh.rotation.x += 0.005;
     mesh.rotation.y += 0.005;
@@ -238,12 +190,6 @@ void update(void) {
             projected_points[j].x += (window_width / 2.0);
             projected_points[j].y += (window_height / 2.0);
         }
-
-        // Calculate average depth after tranformed vertices
-
-        float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;
-
-
         /* Calculate the alignment of the sun with the face
         *  and use the alignment to determine the amount of shading
         *  to apply to the face.
@@ -264,30 +210,33 @@ void update(void) {
                 {mesh_face.c_uv.u, mesh_face.c_uv.v}
             },
             .color = triangle_color,
-            .avg_depth = avg_depth
         };
-        array_push(triangles_to_render, projected_triangle);
+        if (num_triangles_to_render < MAX_TRIANGLES_PER_MESH) {
+            triangles_to_render[num_triangles_to_render++] = projected_triangle;
+        }
     }
-
-    int num_triangles = array_length(triangles_to_render) - 1;
-    merge_sort(0, num_triangles);
 }
 
 void render(void) {
     draw_grid();
     
-    int num_triangles = array_length(triangles_to_render);
-    for (int i = 0; i < num_triangles; i++) {
+    for (int i = 0; i < num_triangles_to_render; i++) {
         triangle_t triangle = triangles_to_render[i];
 
         if (fill_triangles) {
             draw_filled_triangle(
                 triangle.points[0].x,
                 triangle.points[0].y,
+                triangle.points[0].z,
+                triangle.points[0].w,
                 triangle.points[1].x,
                 triangle.points[1].y,
+                triangle.points[1].z,
+                triangle.points[1].w,
                 triangle.points[2].x,
                 triangle.points[2].y,
+                triangle.points[2].z,
+                triangle.points[2].w,
                 triangle.color
             );
         }
@@ -333,17 +282,16 @@ void render(void) {
         }
     }
 
-    // Clear the array of triangles
-    array_free(triangles_to_render);
-
     render_color_buffer();
     clear_color_buffer(0xFF000000);
+    clear_z_buffer();
 
     SDL_RenderPresent(renderer);
 }
 
 void free_resources(void) {
-    free(color_buffer);
+    //free(color_buffer);
+    free(z_buffer);
     array_free(mesh.faces);
     array_free(mesh.vertices);
     //upng_free(png_texture);
