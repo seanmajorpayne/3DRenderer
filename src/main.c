@@ -12,6 +12,7 @@
 #include "light.h"
 #include "texture.h"
 #include "upng.h"
+#include "camera.h"
 #ifndef M_PI
 #define M_PI (3.141592)
 #endif
@@ -27,7 +28,6 @@ bool render_textures = false;
 
 triangle_t triangles_to_render[MAX_TRIANGLES_PER_MESH];
 int num_triangles_to_render = 0;
-vec3_t camera_position = {.x = 0, .y = 0, .z = 0};
 light_t sun = {.direction = {.x = 0.0, .y = 0.0, .z = 1.0}};
 mat4_t projection_matrix;
 int previous_frame_time = 0;
@@ -57,9 +57,9 @@ bool setup(void) {
     float zfar = 100.0;
     projection_matrix = mat4_make_projection(fov, aspect, zfar, znear);
 
-    load_obj_file_data("./assets/f22.obj");
+    load_obj_file_data("./assets/drone.obj");
 
-    load_png_texture_data("./assets/f22.png");
+    load_png_texture_data("./assets/drone.png");
     return true;
 }
 
@@ -103,12 +103,15 @@ void update(void) {
         SDL_Delay(time_to_wait);
     }
 
+    // Get delta time in seconds
+    float delta_time = (SDL_GetTicks() - previous_frame_time) / 1000.0;
     previous_frame_time = SDL_GetTicks();
+
 
     // Reset triangles to render per frame
     num_triangles_to_render = 0;
 
-    mesh.rotation.x += 0.005;
+    //mesh.rotation.x += 0.005;
     mesh.rotation.y += 0.005;
     //mesh.rotation.z = 0.02;
 
@@ -116,9 +119,17 @@ void update(void) {
     mesh.translation.y = -0.3;
     mesh.translation.z = 5.0;
 
-    mesh.scale.x = 0.6;
-    mesh.scale.y = 0.6;
-    mesh.scale.z = 0.6;
+    //mesh.scale.x = 0.6;
+    //mesh.scale.y = 0.6;
+    //mesh.scale.z = 0.6;
+
+    //camera.position.x += 0.01;
+    //camera.position.y += 0.01;
+
+    // Create the view matrix
+    vec3_t target = {0, 0, 5.0};
+    vec3_t up_direction = {0, 1, 0};
+    mat4_t view_matrix = mat4_look_at(camera.position, target, up_direction);
 
     //mesh.translation.x += 0.005;
 
@@ -147,6 +158,8 @@ void update(void) {
 
             transformed_vertex = mat4_vec4_multiply(world_matrix, transformed_vertex);
 
+            transformed_vertex = mat4_vec4_multiply(view_matrix, transformed_vertex);
+
             transformed_vertices[j] = transformed_vertex;
         }
         
@@ -166,7 +179,8 @@ void update(void) {
         * rendered.
         */
         if (enable_culling) {
-            vec3_t camera_vector = vec3_subtract(camera_position, vector_a);
+            vec3_t origin = {0, 0, 0};
+            vec3_t camera_vector = vec3_subtract(origin, vector_a);
             float visible = vec3_dot_product(normal_vector, camera_vector);
             if (visible < 0) {
                 continue;
