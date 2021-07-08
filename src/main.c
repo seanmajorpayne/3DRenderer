@@ -32,6 +32,8 @@ light_t sun = {.direction = {.x = 0.0, .y = 0.0, .z = 1.0}};
 mat4_t projection_matrix;
 int previous_frame_time = 0;
 
+float delta_time = 0;
+
 bool setup(void) {
     color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
     if (!color_buffer) {
@@ -91,6 +93,26 @@ void process_input(void) {
                 case SDLK_4:
                     render_textures = !render_textures;
                     break;
+                case SDLK_w:
+                    camera.forward_velocity = vec3_multiply(camera.direction, 5.0 * delta_time);
+                    camera.position = vec3_add(camera.position, camera.forward_velocity);
+                    break;
+                case SDLK_s:
+                    camera.forward_velocity = vec3_multiply(camera.direction, 5.0 * delta_time);
+                    camera.position = vec3_subtract(camera.position, camera.forward_velocity);
+                    break;
+                case SDLK_a:
+                    camera.yaw += 1.0 * delta_time;
+                    break;
+                case SDLK_d:
+                    camera.yaw -= 1.0 * delta_time;
+                    break;
+                case SDLK_q:
+                    camera.position.y += 3.0 * delta_time;
+                    break;
+                case SDLK_e:
+                    camera.position.y -= 3.0 * delta_time;
+                    break;
             }
             break;
     }
@@ -104,7 +126,7 @@ void update(void) {
     }
 
     // Get delta time in seconds
-    float delta_time = (SDL_GetTicks() - previous_frame_time) / 1000.0;
+    delta_time = (SDL_GetTicks() - previous_frame_time) / 1000.0;
     previous_frame_time = SDL_GetTicks();
 
 
@@ -112,7 +134,7 @@ void update(void) {
     num_triangles_to_render = 0;
 
     //mesh.rotation.x += 0.005;
-    mesh.rotation.y += 0.005;
+    //mesh.rotation.y += 0.005;
     //mesh.rotation.z = 0.02;
 
     // Move object away from camera
@@ -127,7 +149,10 @@ void update(void) {
     //camera.position.y += 0.01;
 
     // Create the view matrix
-    vec3_t target = {0, 0, 5.0};
+    vec3_t target = {0, 0, 1.0};
+    mat4_t camera_yaw_rotation = mat4_rotate_y(camera.yaw);
+    camera.direction = vec3_from_vec4(mat4_vec4_multiply(camera_yaw_rotation, vec4_from_vec3(target)));
+    target = vec3_add(camera.position, camera.direction);
     vec3_t up_direction = {0, 1, 0};
     mat4_t view_matrix = mat4_look_at(camera.position, target, up_direction);
 

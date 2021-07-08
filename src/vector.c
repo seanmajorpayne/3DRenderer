@@ -73,10 +73,11 @@ vec3_t vec3_subtract(vec3_t v_one, vec3_t v_two) {
     return result;    
 }
 
-void vec3_multiply(vec3_t* v, float scalar) {
-    v->x *= scalar;
-    v->y *= scalar;
-    v->z *= scalar;    
+vec3_t vec3_multiply(vec3_t v, float scalar) {
+    v.x *= scalar;
+    v.y *= scalar;
+    v.z *= scalar;
+    return v;    
 }
 
 float vec3_dot_product(vec3_t v_one, vec3_t v_two) {

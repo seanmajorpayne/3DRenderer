@@ -36,7 +36,7 @@ vec3_t vec3_cross_product(vec3_t v_one, vec3_t v_two);
 float vec3_get_magnitude(vec3_t* v);
 vec3_t vec3_add(vec3_t v_one, vec3_t v_two);
 vec3_t vec3_subtract(vec3_t v_one, vec3_t v_two);
-void vec3_multiply(vec3_t* v, float scalar);
+vec3_t vec3_multiply(vec3_t v, float scalar);
 float vec3_dot_product(vec3_t v_one, vec3_t v_two);
 void vec3_divide(vec3_t* v, float scalar);
 void vec3_normalize(vec3_t* v);
