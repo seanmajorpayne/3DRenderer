@@ -95,6 +95,14 @@ void vec3_normalize(vec3_t* v) {
     vec3_divide(v, magnitude);
 }
 
+vec3_t vec3_clone(vec3_t* v) {
+    vec3_t result;
+    result.x = v->x;
+    result.y = v->y;
+    result.z = v->z;
+    return result;
+}
+
 vec4_t vec4_from_vec3(vec3_t v) {
     vec4_t vecfour = {v.x, v.y, v.z, 1.0};
     return vecfour;

@@ -217,7 +217,14 @@ void update(void) {
             }
         }
 
-        // TODO: Clipping
+        // Clipping
+        polygon_t polygon = create_polygon_from_triangle(
+            vec3_from_vec4(transformed_vertices[0]), 
+            vec3_from_vec4(transformed_vertices[1]), 
+            vec3_from_vec4(transformed_vertices[2])
+        );
+
+        clip_polygon(&polygon);
 
         vec4_t projected_points[3];
 

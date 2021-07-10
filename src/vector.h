@@ -40,6 +40,7 @@ vec3_t vec3_multiply(vec3_t v, float scalar);
 float vec3_dot_product(vec3_t v_one, vec3_t v_two);
 void vec3_divide(vec3_t* v, float scalar);
 void vec3_normalize(vec3_t* v);
+vec3_t vec3_clone(vec3_t* v);
 
 //////////////////////////////////////////////////////////////////////
 // Vector Conversion Functions
