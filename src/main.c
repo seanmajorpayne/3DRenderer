@@ -13,6 +13,7 @@
 #include "texture.h"
 #include "upng.h"
 #include "camera.h"
+#include "clipping.h"
 #ifndef M_PI
 #define M_PI (3.141592)
 #endif
@@ -55,9 +56,13 @@ bool setup(void) {
 
     float fov = M_PI / 3.0;                     // 60 Degrees
     float aspect = (float) window_height / (float) window_width;
-    float znear = 0.1;
-    float zfar = 100.0;
-    projection_matrix = mat4_make_projection(fov, aspect, zfar, znear);
+    float z_near = 0.1;
+    float z_far = 100.0;
+    projection_matrix = mat4_make_projection(fov, aspect, z_far, z_near);
+
+    // Initialize frustum planes with a point and normal
+
+    init_frustum_planes(fov, z_near, z_far);
 
     load_obj_file_data("./assets/drone.obj");
 
@@ -211,6 +216,8 @@ void update(void) {
                 continue;
             }
         }
+
+        // TODO: Clipping
 
         vec4_t projected_points[3];
 

@@ -17,4 +17,5 @@ typedef struct {
     vec3_t normal;
 } plane_t;
 
+void init_frustum_planes(float fov, float z_near, float z_far);
 #endif
