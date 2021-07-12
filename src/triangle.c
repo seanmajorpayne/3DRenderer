@@ -75,10 +75,10 @@ void draw_filled_triangle(
                 float gamma = weights.z;
                 float interpolated_reciprocal_w = (1 / w0) * alpha + (1 / w1) * beta + (1 / w2) * gamma;
                 interpolated_reciprocal_w = 1 - interpolated_reciprocal_w;
-                if (interpolated_reciprocal_w < z_buffer[(window_width * y) + x]){
+                if (interpolated_reciprocal_w < get_z_buffer_at(x, y)){
                     draw_pixel(x, y, color);
 
-                    z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;
+                    set_z_buffer(x, y, interpolated_reciprocal_w);
                 }
             }
         }
@@ -110,10 +110,10 @@ void draw_filled_triangle(
                 float gamma = weights.z;
                 float interpolated_reciprocal_w = (1 / w0) * alpha + (1 / w1) * beta + (1 / w2) * gamma;
                 interpolated_reciprocal_w = 1 - interpolated_reciprocal_w;
-                if (interpolated_reciprocal_w < z_buffer[(window_width * y) + x]){
+                if (interpolated_reciprocal_w < get_z_buffer_at(x, y)){
                     draw_pixel(x, y, color);
 
-                    z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;
+                    set_z_buffer(x, y, interpolated_reciprocal_w);
                 }
             }
         }   
@@ -173,11 +173,11 @@ void draw_texel(
     interpolated_reciprocal_w = 1 - interpolated_reciprocal_w;
 
     // Only render pixels that are in the front of the z-plane
-    if (interpolated_reciprocal_w < z_buffer[(window_width * y) + x]) {
+    if (interpolated_reciprocal_w < get_z_buffer_at(x, y)) {
         draw_pixel(x, y, texture[texture_width * tex_y + tex_x]);
         
         // Update z-buffer with 1/w of current pixel
-        z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;
+        set_z_buffer(x, y, interpolated_reciprocal_w);
     }
 }
 

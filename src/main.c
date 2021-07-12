@@ -36,37 +36,21 @@ int previous_frame_time = 0;
 float delta_time = 0;
 
 bool setup(void) {
-    color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
-    if (!color_buffer) {
-        puts("No memory.\n");
-        return false;
-    }
-    z_buffer = (float*) malloc(sizeof(float) * window_width * window_height);
-    if (!z_buffer) {
-        puts("No memory.\n");
-        return false;
-    }
-    color_buffer_texture = SDL_CreateTexture(
-        renderer,
-        SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_STREAMING,
-        window_width,
-        window_height
-    );
-
-    float fov = M_PI / 3.0;                     // 60 Degrees
-    float aspect = (float) window_height / (float) window_width;
+    float aspect_x = (float) get_window_width() / (float) get_window_height();
+    float fov_y = M_PI / 3.0; // 60 Degrees
+    float fov_x = atan(tan(fov_y / 2) * aspect_x) * 2;
+    float aspect_y = (float) get_window_height() / (float) get_window_width();
     float z_near = 0.1;
     float z_far = 100.0;
-    projection_matrix = mat4_make_projection(fov, aspect, z_far, z_near);
+    projection_matrix = mat4_make_projection(fov_y, aspect_y, z_far, z_near);
 
     // Initialize frustum planes with a point and normal
 
-    init_frustum_planes(fov, z_near, z_far);
+    init_frustum_planes(fov_x, fov_y, z_near, z_far);
 
-    load_obj_file_data("./assets/cube.obj");
+    load_obj_file_data("./assets/f22.obj");
 
-    load_png_texture_data("./assets/cube.png");
+    load_png_texture_data("./assets/f22.png");
     return true;
 }
 
@@ -175,8 +159,6 @@ void update(void) {
 
     int num_faces = array_length(mesh.faces);
     for (int i = 0; i < num_faces; i++) {
-        if (i != 4) continue;
-
         face_t mesh_face = mesh.faces[i];
         vec3_t face_vertices[3];
         face_vertices[0] = mesh.vertices[mesh_face.a];
@@ -223,11 +205,13 @@ void update(void) {
         polygon_t polygon = create_polygon_from_triangle(
             vec3_from_vec4(transformed_vertices[0]), 
             vec3_from_vec4(transformed_vertices[1]), 
-            vec3_from_vec4(transformed_vertices[2])
+            vec3_from_vec4(transformed_vertices[2]),
+            mesh_face.a_uv,
+            mesh_face.b_uv,
+            mesh_face.c_uv
         );
 
         clip_polygon(&polygon);
-        printf("Num polygon verts after clipping %d\n", polygon.num_vertices);
 
         triangle_t triangles_after_clipping[MAX_NUM_POLY_TRIANGLES];
         int num_triangles_after_clipping = 0;
@@ -247,12 +231,12 @@ void update(void) {
                 projected_points[j].y *= -1.0;
 
                 // Scale point to middle of screen
-                projected_points[j].x *= (window_width / 2.0);
-                projected_points[j].y *= (window_height / 2.0);
+                projected_points[j].x *= (get_window_width() / 2.0);
+                projected_points[j].y *= (get_window_height() / 2.0);
 
                 // Translate point to middle of screen
-                projected_points[j].x += (window_width / 2.0);
-                projected_points[j].y += (window_height / 2.0);
+                projected_points[j].x += (get_window_width() / 2.0);
+                projected_points[j].y += (get_window_height() / 2.0);
             }
             /* Calculate the alignment of the sun with the face
             *  and use the alignment to determine the amount of shading
@@ -269,9 +253,9 @@ void update(void) {
                     {projected_points[2].x, projected_points[2].y, projected_points[2].z, projected_points[2].w},
                 },
                 .tex_coords = {
-                    {mesh_face.a_uv.u, mesh_face.a_uv.v},
-                    {mesh_face.b_uv.u, mesh_face.b_uv.v},
-                    {mesh_face.c_uv.u, mesh_face.c_uv.v}
+                    {triangle_after_clipping.tex_coords[0].u, triangle_after_clipping.tex_coords[0].v},
+                    {triangle_after_clipping.tex_coords[1].u, triangle_after_clipping.tex_coords[1].v},
+                    {triangle_after_clipping.tex_coords[2].u, triangle_after_clipping.tex_coords[2].v}
                 },
                 .color = triangle_color,
             };
@@ -283,6 +267,10 @@ void update(void) {
 }
 
 void render(void) {
+
+    clear_color_buffer(0xFF000000);
+    clear_z_buffer();
+
     draw_grid();
     
     for (int i = 0; i < num_triangles_to_render; i++) {
@@ -348,15 +336,9 @@ void render(void) {
     }
 
     render_color_buffer();
-    clear_color_buffer(0xFF000000);
-    clear_z_buffer();
-
-    SDL_RenderPresent(renderer);
 }
 
 void free_resources(void) {
-    //free(color_buffer);
-    free(z_buffer);
     array_free(mesh.faces);
     array_free(mesh.vertices);
     //upng_free(png_texture);

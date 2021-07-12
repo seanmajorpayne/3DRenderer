@@ -1,15 +1,35 @@
 #include "display.h"
 #define GREATER_ABS_VALUE(x, y) (abs(x) >= abs(y) ? abs(x) : abs(y))
 
-SDL_Window* window = NULL;
-SDL_Renderer* renderer = NULL;
+static SDL_Window* window = NULL;
+static SDL_Renderer* renderer = NULL;
+static uint32_t* color_buffer = NULL;
+static float* z_buffer = NULL;
+static SDL_Texture* color_buffer_texture = NULL;
+static int window_width = 0;
+static int window_height = 0;
 
-uint32_t* color_buffer = NULL;
-float* z_buffer = NULL;
-SDL_Texture* color_buffer_texture = NULL;
+int get_window_width(void) {
+    return window_width;
+}
 
-int window_width = 0;
-int window_height = 0;
+int get_window_height(void) {
+    return window_height;
+}
+
+float get_z_buffer_at(int x, int y) {
+    if (x < 0 || x >= window_width || y < 0 || y >= window_height) {
+        return 1.0;
+    }
+    return z_buffer[(window_width * y) + x];
+}
+
+void set_z_buffer(int x, int y, float interpolated_reciprocal_w) {
+    if (x < 0 || x >= window_width || y < 0 || y >= window_height) {
+        return;
+    }
+    z_buffer[(window_width * y) + x] = interpolated_reciprocal_w;
+}
 
 bool initialize_window(void) {
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -46,6 +66,24 @@ bool initialize_window(void) {
 
     SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
 
+    color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
+    if (!color_buffer) {
+        puts("No memory.\n");
+        return false;
+    }
+    z_buffer = (float*) malloc(sizeof(float) * window_width * window_height);
+    if (!z_buffer) {
+        puts("No memory.\n");
+        return false;
+    }
+    color_buffer_texture = SDL_CreateTexture(
+        renderer,
+        SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_STREAMING,
+        window_width,
+        window_height
+    );
+
     return true;
 }
 
@@ -57,6 +95,7 @@ void render_color_buffer(void) {
         window_width * sizeof(uint32_t)
     );
     SDL_RenderCopy(renderer, color_buffer_texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
 }
 
 void clear_color_buffer(uint32_t color) {
@@ -82,8 +121,10 @@ void draw_grid(void) {
 }
 
 void draw_pixel(int x, int y, uint32_t color) {
-    if (x >= 0 && x < window_width && y >= 0 && y < window_height)
-        color_buffer[(window_width * y) + x] = color;
+    if (x < 0 || x >= window_width || y < 0 || y >= window_height) {
+        return;
+    }
+    color_buffer[(window_width * y) + x] = color;
 }
 
 void draw_rect(int x, int y, int width, int height, uint32_t color) {
@@ -126,6 +167,8 @@ void draw_vertices(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t colo
 }
 
 void destroy_window(void) {
+    free(color_buffer);
+    free(z_buffer);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
