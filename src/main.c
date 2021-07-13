@@ -48,9 +48,9 @@ bool setup(void) {
 
     init_frustum_planes(fov_x, fov_y, z_near, z_far);
 
-    load_obj_file_data("./assets/f22.obj");
+    load_obj_file_data("./assets/drone.obj");
 
-    load_png_texture_data("./assets/f22.png");
+    load_png_texture_data("./assets/drone.png");
     return true;
 }
 
@@ -83,24 +83,28 @@ void process_input(void) {
                     render_textures = !render_textures;
                     break;
                 case SDLK_w:
-                    camera.forward_velocity = vec3_multiply(camera.direction, 5.0 * delta_time);
-                    camera.position = vec3_add(camera.position, camera.forward_velocity);
+                    move_camera_forward(delta_time);
                     break;
                 case SDLK_s:
-                    camera.forward_velocity = vec3_multiply(camera.direction, 5.0 * delta_time);
-                    camera.position = vec3_subtract(camera.position, camera.forward_velocity);
+                    move_camera_backwards(delta_time);
                     break;
                 case SDLK_a:
-                    camera.yaw += 1.0 * delta_time;
+                    increase_camera_yaw(delta_time);
                     break;
                 case SDLK_d:
-                    camera.yaw -= 1.0 * delta_time;
+                    decrease_camera_yaw(delta_time);
+                    break;
+                case SDLK_UP:
+                    increase_camera_pitch(delta_time);
+                    break;
+                case SDLK_DOWN:
+                    decrease_camera_pitch(delta_time);
                     break;
                 case SDLK_q:
-                    camera.position.y += 3.0 * delta_time;
+                    increase_camera_y_pos(delta_time);
                     break;
                 case SDLK_e:
-                    camera.position.y -= 3.0 * delta_time;
+                    decrease_camera_y_yaw(delta_time);
                     break;
             }
             break;
@@ -118,7 +122,6 @@ void update(void) {
     delta_time = (SDL_GetTicks() - previous_frame_time) / 1000.0;
     previous_frame_time = SDL_GetTicks();
 
-
     // Reset triangles to render per frame
     num_triangles_to_render = 0;
 
@@ -127,14 +130,11 @@ void update(void) {
     mesh.translation.z = 5.0;
 
     // Create the view matrix
-    vec3_t target = {0, 0, 1.0};
-    mat4_t camera_yaw_rotation = mat4_rotate_y(camera.yaw);
-    camera.direction = vec3_from_vec4(mat4_vec4_multiply(camera_yaw_rotation, vec4_from_vec3(target)));
-    target = vec3_add(camera.position, camera.direction);
+    mat4_t camera_yaw_rotation = mat4_rotate_y(get_camera_yaw());
+    mat4_t camera_pitch_rotation = mat4_rotate_x(get_camera_pitch());
+    vec3_t target = update_target(camera_yaw_rotation, camera_pitch_rotation);
     vec3_t up_direction = {0, 1, 0};
-    mat4_t view_matrix = mat4_look_at(camera.position, target, up_direction);
-
-    //mesh.translation.x += 0.005;
+    mat4_t view_matrix = get_view_matrix(target, up_direction);
 
     // Create scale matrix to multiply mesh vertices
     mat4_t scale_matrix = mat4_scale(mesh.scale.x, mesh.scale.y, mesh.scale.z);
@@ -231,7 +231,6 @@ void update(void) {
             *  and use the alignment to determine the amount of shading
             *  to apply to the face.
             */
-            //vec3_normalize(&sun.direction);
             float face_light_alignment = -vec3_dot_product(normal_vector, get_light_direction());
             uint32_t triangle_color = light_apply_intensity(mesh_face.color, face_light_alignment);
 
