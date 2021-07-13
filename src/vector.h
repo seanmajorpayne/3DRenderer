@@ -29,6 +29,7 @@ void vec2_normalize(vec2_t* v);
 // Vector 3D Functions
 //////////////////////////////////////////////////////////////////////
 
+vec3_t vec3_new(float x, float y, float z);
 vec3_t vec3_rotate_x(vec3_t v, float angle);
 vec3_t vec3_rotate_y(vec3_t v, float angle);
 vec3_t vec3_rotate_z(vec3_t v, float angle);

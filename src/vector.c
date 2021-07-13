@@ -50,6 +50,11 @@ void vec2_normalize(vec2_t* v)
 // Vector 3D Functions
 //////////////////////////////////////////////////////////////////////
 
+vec3_t vec3_new(float x, float y, float z) {
+    vec3_t result = {x, y, z};
+    return result;
+}
+
 // Pythagorean theorem for 3D Vector
 float vec3_get_magnitude(vec3_t* v) {
     return sqrt(pow(v->x, 2) + pow(v->y, 2) + pow(v->z, 2));

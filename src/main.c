@@ -29,7 +29,6 @@ bool render_textures = false;
 
 triangle_t triangles_to_render[MAX_TRIANGLES_PER_MESH];
 int num_triangles_to_render = 0;
-light_t sun = {.direction = {.x = 0.0, .y = 0.0, .z = 1.0}};
 mat4_t projection_matrix;
 int previous_frame_time = 0;
 
@@ -44,6 +43,7 @@ bool setup(void) {
     float z_far = 100.0;
     projection_matrix = mat4_make_projection(fov_y, aspect_y, z_far, z_near);
 
+    init_light(vec3_new(0.0, 0.0, 1.0));
     // Initialize frustum planes with a point and normal
 
     init_frustum_planes(fov_x, fov_y, z_near, z_far);
@@ -122,20 +122,9 @@ void update(void) {
     // Reset triangles to render per frame
     num_triangles_to_render = 0;
 
-    //mesh.rotation.x += 0.005;
-    //mesh.rotation.y += 0.005;
-    //mesh.rotation.z = 0.02;
-
     // Move object away from camera
     mesh.translation.y = -0.3;
     mesh.translation.z = 5.0;
-
-    //mesh.scale.x = 0.6;
-    //mesh.scale.y = 0.6;
-    //mesh.scale.z = 0.6;
-
-    //camera.position.x += 0.01;
-    //camera.position.y += 0.01;
 
     // Create the view matrix
     vec3_t target = {0, 0, 1.0};
@@ -242,8 +231,8 @@ void update(void) {
             *  and use the alignment to determine the amount of shading
             *  to apply to the face.
             */
-            vec3_normalize(&sun.direction);
-            float face_light_alignment = -vec3_dot_product(normal_vector, sun.direction);
+            //vec3_normalize(&sun.direction);
+            float face_light_alignment = -vec3_dot_product(normal_vector, get_light_direction());
             uint32_t triangle_color = light_apply_intensity(mesh_face.color, face_light_alignment);
 
             triangle_t triangle_to_render = {
@@ -345,7 +334,6 @@ void free_resources(void) {
 }
 
 int main(void) {
-    /* TODO: Create SDL Window */
     is_running = initialize_window();
 
     if(!setup()) {
